@@ -7,6 +7,47 @@ import os
 import numpy
 import copy
 
+class BookKeeper:
+
+    def __init__(self, epoch=0, alpha=0.5):
+        self.epoch = epoch
+        self.grad_book = []
+        self.grad_norm_avg = 0
+        self.grad_norm_std = 0
+
+        self.t1, self.t2 = 0, 0
+        self.alpha = alpha
+        self.mean_vec = None
+
+    def initialize_book(self):
+        self.grad_book = []
+        self.epoch = 0
+
+    def add_to_book(self, new_vals):
+        self.grad_book.extend(new_vals)
+
+    def compute_thresholds(self):
+        self.grad_norm_avg = numpy.mean(numpy.array(self.grad_book))
+        self.grad_norm_std = numpy.std(numpy.array(self.grad_book))
+        self.t1 = self.grad_norm_avg - self.alpha*self.grad_norm_std
+        self.t2 = self.grad_norm_avg + self.alpha*self.grad_norm_avg
+
+    def compute_avg_vec(self):
+        self.mean_vec = numpy.mean(numpy.array(self.grad_book), 0)
+        self.mean_vec = self.mean_vec/numpy.linalg.norm(self.mean_vec)
+
+
+    @property
+    def thresh1(self):
+        return self.t1
+
+    @property
+    def thresh2(self):
+        return self.t2
+
+
+
+
 class Client:
 
     def __init__(self, args, client_idx, train_data_loader, test_data_loader):
@@ -39,12 +80,14 @@ class Client:
         self.train_data_loader = train_data_loader
         self.test_data_loader = test_data_loader
 
+
+
     def initialize_device(self):
         """
         Creates appropriate torch device for client operation.
         """
         if torch.cuda.is_available() and self.args.get_cuda():
-            return torch.device("cuda:0")
+            return torch.device("cuda:7")
         else:
             return torch.device("cpu")
 
@@ -81,8 +124,7 @@ class Client:
             try:
                 model.load_state_dict(torch.load(model_file_path))
             except:
-                self.args.get_logger().warning("Couldn't load model. Attempting to map CUDA tensors to CPU to solve error.")
-
+                # self.args.get_logger().warning("Couldn't load model. Attempting to map CUDA tensors to CPU to solve error.")
                 model.load_state_dict(torch.load(model_file_path, map_location=torch.device('cpu')))
         else:
             self.args.get_logger().warning("Could not find model: {}".format(model_file_path))

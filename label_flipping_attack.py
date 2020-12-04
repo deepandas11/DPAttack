@@ -12,7 +12,7 @@ STEPS
 
 1. Comment out/in appropriate portions in the arguments.py file for dataset specific hyperparams
 2. Set total number of workers in arguments.py (50 or 20) 
-3. Set NUM_POISONED_WORKERS here. (10/25). For Baseline, choose this to be 0
+3. Set NUM_POISONED_WORKERS here. (10/5). For Baseline, choose this to be 0
 4. Set REPLACEMENT METHOD
 5. Set NAME 
 6. Once experiment has run, put all files and folders starting with chosen NAME and the folder logs/ into a new folder
@@ -20,11 +20,11 @@ STEPS
 """
 
 if __name__ == '__main__':
-    NAME = 'Flip_CIFAR_02'
-    START_EXP_IDX = 3000
+    NAME = 'Flip_CIFAR_53_defense'
+    START_EXP_IDX = 2010
     NUM_EXP = 3
-    NUM_POISONED_WORKERS = 25
-    REPLACEMENT_METHOD = replace_0_with_2
+    NUM_POISONED_WORKERS = 10
+    REPLACEMENT_METHOD = replace_5_with_3
     KWARGS = {
         "NUM_WORKERS_PER_ROUND" : 5
     }

@@ -4,11 +4,11 @@ from federated_learning.worker_selection import RandomSelectionStrategy
 from server import run_exp
 
 if __name__ == '__main__':
-    NAME = 'Nz_CIFAR_6_'
+    NAME = 'Nz_CIFAR_6_defense'
     START_EXP_IDX = 2010
     NUM_EXP = 3
     NUM_POISONED_WORKERS = 10
-    REPLACEMENT_METHOD = noise_6
+    REPLACEMENT_METHOD = noise_2
     KWARGS = {
         "NUM_WORKERS_PER_ROUND" : 5
     }

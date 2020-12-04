@@ -11,9 +11,9 @@ from federated_learning.utils import load_train_data_loader
 from federated_learning.utils import load_test_data_loader
 from federated_learning.utils import generate_experiment_ids
 from federated_learning.utils import convert_results_to_csv
-from client import Client
+from client import Client, BookKeeper
 
-def train_subset_of_clients(epoch, args, clients, poisoned_workers):
+def train_subset_of_clients(epoch, args, clients, poisoned_workers, bookkeeper):
     """
     Train a subset of clients per round.
 
@@ -34,19 +34,23 @@ def train_subset_of_clients(epoch, args, clients, poisoned_workers):
         poisoned_workers,
         kwargs)
 
+    # Get parameters before training
+    curr_parameters = clients[0].get_nn_parameters()
+
     for client_idx in random_workers:
         args.get_logger().info("Training epoch #{} on client #{}", str(epoch), str(clients[client_idx].get_client_index()))
         clients[client_idx].train(epoch)
 
+
     args.get_logger().info("Averaging client parameters")
     parameters = [clients[client_idx].get_nn_parameters() for client_idx in random_workers]
-    new_nn_params = average_nn_parameters(parameters)
+    new_nn_params, bookkeeper = average_nn_parameters(parameters, curr_parameters, epoch, bookkeeper)
 
     for client in clients:
         args.get_logger().info("Updating parameters on client #{}", str(client.get_client_index()))
         client.update_nn_parameters(new_nn_params)
 
-    return clients[0].test(), random_workers
+    return clients[0].test(), random_workers, bookkeeper
 
 def create_clients(args, train_data_loaders, test_data_loader):
     """
@@ -58,14 +62,15 @@ def create_clients(args, train_data_loaders, test_data_loader):
 
     return clients
 
-def run_machine_learning(clients, args, poisoned_workers):
+def run_machine_learning(clients, args, poisoned_workers, bookkeeper):
     """
     Complete machine learning over a series of clients.
     """
     epoch_test_set_results = []
     worker_selection = []
+    bookkeeper.initialize_book()
     for epoch in range(1, args.get_num_epochs() + 1):
-        results, workers_selected = train_subset_of_clients(epoch, args, clients, poisoned_workers)
+        results, workers_selected, bookkeeper = train_subset_of_clients(epoch, args, clients, poisoned_workers, bookkeeper)
 
         epoch_test_set_results.append(results)
         worker_selection.append(workers_selected)
@@ -101,7 +106,9 @@ def run_exp(replacement_method, num_poisoned_workers, KWARGS, client_selection_s
 
     clients = create_clients(args, train_data_loaders, test_data_loader)
 
-    results, worker_selection = run_machine_learning(clients, args, poisoned_workers)
+    bookkeeper = BookKeeper()
+
+    results, worker_selection = run_machine_learning(clients, args, poisoned_workers, bookkeeper)
     save_results(results, results_files[0])
     save_results(worker_selection, worker_selections_files[0])
 
